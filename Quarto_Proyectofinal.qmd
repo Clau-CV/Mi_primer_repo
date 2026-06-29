@@ -18,3 +18,4 @@ Documentación clara del proceso de descarga. ¿Qué significan las columnas del
 - Visualización gráfica La exploración gráfica y la presentación de resultados quedan a tu elección. Sin embargo, deben ser claras y comprensibles para todo público. El reporte será evaluado en función del orden y la coherencia en la presentación de la información, siguiendo una estructura de lo general a lo particular. Debes respetar el orden visto en clase, comenzando con la limpieza y manipulación de datos, y posterior visualización gráfica
 
 **Subir**: Quarto (.qmd), HTML (.html), Figuras
+HOLA
