@@ -6,14 +6,38 @@ editor: visual
 ---
 
 # Descripción de los datos
-Para la obtención de la base de datos, se utilizó la plataforma Kaggle...
-Base de Datos: "Music & Mental Health Survey Results"
+Las neurociencias forman parte de nuestra vida académica, por lo que optamos por buscar una base de datos sobre el sistema nervioso. Se utilizó la plataforma Kaggle, considerando los siguientes factores: usability (>9, de preferencia 10), licence (public domain), archivo csv.
 
-Descripción...
+Con base en ello, seleccionamos la base de datos: **"Music & Mental Health Survey Results" (MxMH)**
+La musicoterapia (MT) es reconocida como una práctica basada en evidencia que utiliza la música para mejorar la salud mental del individuo. Sin embargo, existe una amplia gama de géneros musicales. Los datos aportados pueden ayudar a encontrar alguna correlación entre los gustos musicales y la salud mental (autorreportada).
 
-Documentación clara del proceso de descarga. ¿Qué significan las columnas del datasets? Dimensiones del data frame (filas x columnas) ¿Qué tipo de datos analizaste? Describe brevemente el tipo de datos utilizados
+```{r}
+# Cargar las paqueterías
+library (ggplot2)
+library (dplyr)
+library (tidyr)
+library (tidyverse)
+```
+
+```{r}
+# Cargar base de datos
+mxmh <- read_csv("mxmh_survey_results.csv")
+head(mxmh) # Para cargar los primeros datos y asegurar que haya cargado
+```
+
+```{r}
+# Explorar la base de datos
+dim(mxmh) # Para explorar la base
+names(mxmh) # Ver las variables que tenemos
+```
+
+¿Qué significan las columnas del datasets? 
+Dimensiones del data frame (filas x columnas) 
+¿Qué tipo de datos analizaste? Describe brevemente el tipo de datos utilizados
+
 
 ☻ ☻ ☻
+---
 
 # Preguntas de Investigación
 
