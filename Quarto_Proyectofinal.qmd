@@ -6,6 +6,10 @@ editor: visual
 ---
 
 # Descripción de los datos
+Para la obtención de la base de datos, se utilizó la plataforma Kaggle...
+Base de Datos: "Music & Mental Health Survey Results"
+
+Descripción...
 
 Documentación clara del proceso de descarga. ¿Qué significan las columnas del datasets? Dimensiones del data frame (filas x columnas) ¿Qué tipo de datos analizaste? Describe brevemente el tipo de datos utilizados
 
