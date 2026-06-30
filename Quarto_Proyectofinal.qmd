@@ -6,20 +6,229 @@ editor: visual
 ---
 
 # Descripción de los datos
-Para la obtención de la base de datos, se utilizó la plataforma Kaggle...
-Base de Datos: "Music & Mental Health Survey Results"
+Las neurociencias forman parte de nuestra vida académica, por lo que optamos por buscar una base de datos sobre el sistema nervioso. Se utilizó la plataforma Kaggle, considerando los siguientes factores: usability (>9, de preferencia 10), licence (public domain), archivo csv.
 
-Descripción...
+Con base en ello, seleccionamos la base de datos: **"Music & Mental Health Survey Results" (MxMH)**
+La musicoterapia (MT) es reconocida como una práctica basada en evidencia que utiliza la música para mejorar la salud mental de las personas. Sin embargo, existe una amplia gama de géneros musicales. Los datos aportados pueden ayudar a identificar una posible correlación entre los gustos musicales y la salud mental autorreportada.
 
-Documentación clara del proceso de descarga. ¿Qué significan las columnas del datasets? Dimensiones del data frame (filas x columnas) ¿Qué tipo de datos analizaste? Describe brevemente el tipo de datos utilizados
+# PREPARAR BASE DE DATOS
+## Cargar Base de Datos
+```{r}
+mxmh <- read.csv("mxmh_survey_results.csv")
+head(mxmh) # revisar primeros elementos
+```
+
+## Exploración de Base de Datos
+```{r}
+dim(mxmh) # dimensiones
+
+## Verificación de variables
+names(mxmh) # nombres de las columnas
+str(mxmh) # tipo
+```
+**Resumen del DataSet**
+```{r}
+summary(mxmh)
+```
+
+---
+# Cargar Librerías
+```{r}
+library(tidyr) # para reorganizar base
+library(dplyr) # para manipular datos
+library(ggplot2) # para visualización
+library (janitor) # para organizar los nombres
+```
+
+# Limpieza de Datos
+```{r}
+mxmh <- mxmh %>%
+  clean_names() # quitar los puntos
+# Reemplazando fav_genre en vez de fav.genre para que sea más intuitivo
+
+# Verificar
+head(mxmh)
+```
+
+**Revisar si hay NA**
+Verificar si existen valores faltantes para ver si afectan en el análisis...
+```{r}
+colSums(is.na(mxmh))
+```
+Hay un NA en edad, y 107 en BPM, pero corresponden a preguntas no contestadas
+
+**Revisar si hay valores duplicados**
+```{r}
+sum(duplicated(mxmh))
+```
+No hay valores duplicados
+
+**Convertir variables Sí/No en factores**
+```{r}
+mxmh <- mxmh %>%
+  mutate(across(c(while_working,
+                  instrumentalist,
+                  composer,
+                  exploratory,
+                  foreign_languages),
+                as.factor)) # Texto a variable categórica, para que no queden como caracteres (yes/no)
+```
+
+*Verificar si se hizo*
+Observar cuántas personas hay en cada categoría
+```{r}
+table(mxmh$instrumentalist)
+```
+
+*Verificar todas las variables por si acaso...*
+```{r}
+glimpse(mxmh)
+```
+
+
+**Convertir otras variables a factor**
+```{r}
+# Las categóricas
+mxmh <- mxmh %>%
+  mutate(
+    primary_streaming_service = factor(primary_streaming_service),
+    fav_genre = factor(fav_genre),
+    music_effects = factor(music_effects),
+    permissions = factor(permissions)
+  )
+
+# Seleccionar también todas las que empiececn con frequency_
+mxmh <- mxmh %>%
+  mutate(across(starts_with("frequency_"),
+                factor))
+```
+
+
+**Volver a verificar...**
+```{r}
+glimpse(mxmh)
+```
+
+
+¿Qué significan las columnas del datasets? 
+Dimensiones del data frame (filas x columnas) 
+¿Qué tipo de datos analizaste? Describe brevemente el tipo de datos utilizados
+
 
 ☻ ☻ ☻
+---
+# ANÁLISIS
+## Preguntas de Investigación
 
-# Preguntas de Investigación
+### ¿Existe alguna diferencia en preferencias musicales entre personas con distintos niveles de síntomas obsesivo-compulsivos (OCD)? 
+**1. Revisar la distribución para conocer la qué tan frecuentes son los síntomas de OCD en la muestra**
+```{r}
+ggplot(mxmh, aes(x = ocd)) +
+  geom_histogram(
+    binwidth = 1,
+    fill = "#5E548E",
+    color = "white"
+  ) +
+  labs(
+    title = "Distribución de los puntajes de OCD",
+    x = "Puntaje OCD",
+    y = "Frecuencia"
+  ) +
+  theme_minimal()
+```
 
-- Análisis y resultados Analiza los datos y genera 5 preguntas que puedas contestar con las variables que tienes. Genera un reporte completo empleando R Markdown (.Rmd) o Quarto (.qmd) que nos conteste las preguntas realizadas y nos de gráficas de cada uno
+El histograma muestra cuántos participantes hubo para cada puntaje. La mayoria presnta valores bajos (0-3)
 
-- Visualización gráfica La exploración gráfica y la presentación de resultados quedan a tu elección. Sin embargo, deben ser claras y comprensibles para todo público. El reporte será evaluado en función del orden y la coherencia en la presentación de la información, siguiendo una estructura de lo general a lo particular. Debes respetar el orden visto en clase, comenzando con la limpieza y manipulación de datos, y posterior visualización gráfica
+*Revisar la frecuencia de cada puntaje*
+```{r}
+table(mxmh$ocd)
+```
+
+**2. Clasificar OCD por grupos de alto, moderado y bajo**
+Una nueva columna para los grupos, mostrando las categorías
+```{r}
+mxmh <- mxmh %>%
+  mutate(
+    ocd_group = case_when( # lee cada fila
+      ocd <= 3 ~ "Bajo",
+      ocd <= 6 ~ "Moderado",
+      TRUE ~ "Alto" # lo que no corresponde a las categorías anteriores
+    )
+  )
+```
+No se reportaron puntos de corte (niveles clínicos), así que la clasificación es solo para facilitar la comparación
+
+*Verificar...*
+```{r}
+table(mxmh$ocd_group)
+```
+
+**3. Gráfica para comparar preferencias musicales**
+Considerando sus géneros musicales favoritos.
+```{r}
+mxmh %>%
+  filter(ocd_group != "Moderado") %>% # Excluyendo moderado, porque solo me interesa alto y bajo
+  ggplot(aes(x = fav_genre,
+             fill = ocd_group)) + # para las categorías
+  geom_bar(position = "fill") +# para comparar proporciones, cada barra representa el 100% de ese grupo
+  coord_flip() + # voltea la gráfica para que las etiquetas se puedan leer
+  labs(
+    title = "Preferencia musical según nivel de OCD",
+    x = "Género favorito",
+    y = "Proporción",
+    fill = "Grupo OCD"
+  ) +
+  theme_minimal()
+```
+
+---
+### ¿Cómo es el perfil clínico de las personas con OCD elevado? 
+
+**1. Generar un resumen**
+Para comparar los promedios de ansiedad, depresión e insomnio
+```{r}
+perfil <- mxmh %>%
+  group_by(ocd_group) %>%
+  summarise(
+    ansiedad = mean(anxiety, na.rm = TRUE), # Para ignorar si hay datos faltantes
+    depresion = mean(depression, na.rm = TRUE),
+    insomnio = mean(insomnia, na.rm = TRUE)
+  )
+```
+
+**2. Convertir a formato largo**
+Cada fila representa una sola observación, porque sino hay problemas con ggplot.
+```{r}
+library(tidyr)
+
+perfil_long <- perfil %>%
+  pivot_longer(
+    cols = ansiedad:insomnio,
+    names_to = "variable",
+    values_to = "promedio"
+  )
+```
+
+**3. Graficar**
+```{r}
+ggplot(perfil_long,
+       aes(variable,
+           promedio,
+           fill = ocd_group)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Perfil clínico según nivel de OCD",
+    x = "",
+    y = "Promedio"
+  ) +
+  theme_minimal()
+```
+
+
+
+---
+**Notas de Guía**
+- La exploración gráfica y la presentación de resultados quedan a tu elección. Sin embargo, deben ser claras y comprensibles para todo público. El reporte será evaluado en función del orden y la coherencia en la presentación de la información, siguiendo una estructura de lo general a lo particular. Debes respetar el orden visto en clase, comenzando con la limpieza y manipulación de datos, y posterior visualización gráfica
 
 **Subir**: Quarto (.qmd), HTML (.html), Figuras
 HOLA
