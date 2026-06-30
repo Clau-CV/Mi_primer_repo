@@ -117,11 +117,118 @@ Dimensiones del data frame (filas x columnas)
 
 ☻ ☻ ☻
 ---
-# Preguntas de Investigación
+# ANÁLISIS
+## Preguntas de Investigación
 
-- Análisis y resultados Analiza los datos y genera 5 preguntas que puedas contestar con las variables que tienes. Genera un reporte completo empleando R Markdown (.Rmd) o Quarto (.qmd) que nos conteste las preguntas realizadas y nos de gráficas de cada uno
+### ¿Existe alguna diferencia en preferencias musicales entre personas con distintos niveles de síntomas obsesivo-compulsivos (OCD)? 
+**1. Revisar la distribución para conocer la qué tan frecuentes son los síntomas de OCD en la muestra**
+```{r}
+ggplot(mxmh, aes(x = ocd)) +
+  geom_histogram(
+    binwidth = 1,
+    fill = "#5E548E",
+    color = "white"
+  ) +
+  labs(
+    title = "Distribución de los puntajes de OCD",
+    x = "Puntaje OCD",
+    y = "Frecuencia"
+  ) +
+  theme_minimal()
+```
 
-- Visualización gráfica La exploración gráfica y la presentación de resultados quedan a tu elección. Sin embargo, deben ser claras y comprensibles para todo público. El reporte será evaluado en función del orden y la coherencia en la presentación de la información, siguiendo una estructura de lo general a lo particular. Debes respetar el orden visto en clase, comenzando con la limpieza y manipulación de datos, y posterior visualización gráfica
+El histograma muestra cuántos participantes hubo para cada puntaje. La mayoria presnta valores bajos (0-3)
+
+*Revisar la frecuencia de cada puntaje*
+```{r}
+table(mxmh$ocd)
+```
+
+**2. Clasificar OCD por grupos de alto, moderado y bajo**
+Una nueva columna para los grupos, mostrando las categorías
+```{r}
+mxmh <- mxmh %>%
+  mutate(
+    ocd_group = case_when( # lee cada fila
+      ocd <= 3 ~ "Bajo",
+      ocd <= 6 ~ "Moderado",
+      TRUE ~ "Alto" # lo que no corresponde a las categorías anteriores
+    )
+  )
+```
+No se reportaron puntos de corte (niveles clínicos), así que la clasificación es solo para facilitar la comparación
+
+*Verificar...*
+```{r}
+table(mxmh$ocd_group)
+```
+
+**3. Gráfica para comparar preferencias musicales**
+Considerando sus géneros musicales favoritos.
+```{r}
+mxmh %>%
+  filter(ocd_group != "Moderado") %>% # Excluyendo moderado, porque solo me interesa alto y bajo
+  ggplot(aes(x = fav_genre,
+             fill = ocd_group)) + # para las categorías
+  geom_bar(position = "fill") +# para comparar proporciones, cada barra representa el 100% de ese grupo
+  coord_flip() + # voltea la gráfica para que las etiquetas se puedan leer
+  labs(
+    title = "Preferencia musical según nivel de OCD",
+    x = "Género favorito",
+    y = "Proporción",
+    fill = "Grupo OCD"
+  ) +
+  theme_minimal()
+```
+
+---
+### ¿Cómo es el perfil clínico de las personas con OCD elevado? 
+
+**1. Generar un resumen**
+Para comparar los promedios de ansiedad, depresión e insomnio
+```{r}
+perfil <- mxmh %>%
+  group_by(ocd_group) %>%
+  summarise(
+    ansiedad = mean(anxiety, na.rm = TRUE), # Para ignorar si hay datos faltantes
+    depresion = mean(depression, na.rm = TRUE),
+    insomnio = mean(insomnia, na.rm = TRUE)
+  )
+```
+
+**2. Convertir a formato largo**
+Cada fila representa una sola observación, porque sino hay problemas con ggplot.
+```{r}
+library(tidyr)
+
+perfil_long <- perfil %>%
+  pivot_longer(
+    cols = ansiedad:insomnio,
+    names_to = "variable",
+    values_to = "promedio"
+  )
+```
+
+**3. Graficar**
+```{r}
+ggplot(perfil_long,
+       aes(variable,
+           promedio,
+           fill = ocd_group)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Perfil clínico según nivel de OCD",
+    x = "",
+    y = "Promedio"
+  ) +
+  theme_minimal()
+```
+
+
+
+---
+**Notas de Guía**
+- La exploración gráfica y la presentación de resultados quedan a tu elección. Sin embargo, deben ser claras y comprensibles para todo público. El reporte será evaluado en función del orden y la coherencia en la presentación de la información, siguiendo una estructura de lo general a lo particular. Debes respetar el orden visto en clase, comenzando con la limpieza y manipulación de datos, y posterior visualización gráfica
 
 **Subir**: Quarto (.qmd), HTML (.html), Figuras
 HOLA
