@@ -115,12 +115,12 @@ Dimensiones del data frame (filas x columnas)
 ¿Qué tipo de datos analizaste? Describe brevemente el tipo de datos utilizados
 
 
-☻ ☻ ☻
+
 ---
 # ANÁLISIS
 ## Preguntas de Investigación
 
-### ¿Existe alguna diferencia en preferencias musicales entre personas con distintos niveles de síntomas obsesivo-compulsivos (OCD)? 
+### 1) ¿Existe alguna diferencia en preferencias musicales entre personas con distintos niveles de síntomas obsesivo-compulsivos (OCD)? 
 **1. Revisar la distribución para conocer la qué tan frecuentes son los síntomas de OCD en la muestra**
 ```{r}
 ggplot(mxmh, aes(x = ocd)) +
@@ -182,7 +182,7 @@ mxmh %>%
 ```
 
 ---
-### ¿Cómo es el perfil clínico de las personas con OCD elevado? 
+### 2) ¿Cómo es el perfil clínico de las personas con OCD elevado? 
 
 **1. Generar un resumen**
 Para comparar los promedios de ansiedad, depresión e insomnio
@@ -223,7 +223,96 @@ ggplot(perfil_long,
   ) +
   theme_minimal()
 ```
+☻☻☻
+### 3)¿Hay algún género musical que esté asociado a menores niveles de insomnio?
 
+***1. Generar un Resumen*** Agrupamos a las personas que presentan insomnio por sus géneros musicales favoritos (fav_genre). La variable de insomnio tiene un valor entre 0-10 por lo que obtenemos la media y la desviación estándar en esta variable para cada género musical.
+
+```{r}
+mxmh %>%
+  group_by(fav_genre) %>%
+  summarise(
+    n = n(),
+    media_insomnio = mean(insomnia, na.rm = TRUE),
+    sd_insomnio = sd(insomnia, na.rm = TRUE)
+  ) %>%
+  arrange(media_insomnio)
+```
+
+***2. Generar una Grafica*** Creamos una grafica de barras ordenada en función del nivel de insomnio promedio para lograr identificar visualmente alguna relación entre el género musical preferido y el insomnio autoinformado.
+
+```{r}
+insomnio_genero <- mxmh %>%
+  group_by(fav_genre) %>%
+  summarise(
+    n = n(),
+    media_insomnio = mean(insomnia, na.rm = TRUE),
+    sd_insomnio = sd(insomnia, na.rm = TRUE)
+  ) %>%
+  arrange(media_insomnio)
+insomnio_genero
+ggplot(insomnio_genero,
+       aes(x = reorder(fav_genre, media_insomnio),
+           y = media_insomnio)) +
+
+  geom_col(fill = "#5E548E") +
+
+  coord_flip() +
+
+  labs(
+    title = "Nivel promedio de insomnio segun género musical favorito",
+    x = "Genero favorito",
+    y = "Insomnio promedio (0-10)"
+  ) +
+
+  theme_minimal()
+```
+
+***3. Interpretacion*** Sorprendentemente, en la gráfica se puede observar que los participantes cuyo género musical favorito es el Lofi presentan mayor promedio de insomnio, seguidos por el Gospel y el Metal. Por el otro lado, los participantes que prefieren el Rap muestran el menor nivel promedio de insomnio, seguidos por el Country. El género Lofi es usualmente escuchado para relajación o intentar conciliar el sueño, lo cual puede estar explicando este resultado tan particular.
+
+### 4) ¿Existe alguna relación entre la ansiedad y el insomnio?
+
+***1. Elaborar un Scatter Plot*** Al tratarse de dos variables no categóricas pero discretas (0-10), lo que debemos realizar es un scatter plot que nos permita visualizar de primera mano el comportamiento de ambas variables, para así poder identificar alguna tendencia o correlación entre ambas.
+
+```{r}
+ggplot(mxmh,
+       aes(x = anxiety,
+           y = insomnia)) +
+
+  geom_jitter(alpha = 0.4,
+              color = "blueviolet") +
+
+  geom_smooth(method = "lm",
+              se = TRUE,
+              color = "orange2") +
+
+  labs(
+    title = "Relación entre la amsiedad y el insomnio ☻",
+    x = "Nivel de ansiedad (0-10)",
+    y = "Nivel de insomnio (0-10)"
+  ) +
+
+  theme_minimal()
+```
+***2. Interpretación de la Gráfica***
+La gráfica nos mostró una asociación positiva (línea naranja) entre los niveles autoinformados de ansiedad y aquellos autoinformados por el insomnio. Sin embargo, se ve claramente una alta dispersión de los datos, lo cual quiere decir que no es una relación tan clara y absoluta, con lo cual podrían estar influyendo otras variables diferentes. 
+
+
+***3. Calculo de una Correlacion***
+Los coeficientes de Spearman son útiles para medir la fuerza y dirección en la relación entre dos variables. Y el valor de “p” nos permitirá saber si la correlación es estadísticamente significativa.
+```{r}
+cor.test(mxmh$anxiety,
+         mxmh$insomnia,
+         method = "spearman")
+```
+***4. Interpretación de los Resultados de Correlación***
+Para el resultado del coeficiente de Spearman, su valor nos indica una correlación relativamente débil.
+Para el resultado del valor “p”, nos indica que la correlación es estadísticamente significativa.
+
+
+# Conclusiones finales
+
+# \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
 
 
 ---
