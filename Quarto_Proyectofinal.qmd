@@ -9,27 +9,106 @@ editor: visual
 Las neurociencias forman parte de nuestra vida académica, por lo que optamos por buscar una base de datos sobre el sistema nervioso. Se utilizó la plataforma Kaggle, considerando los siguientes factores: usability (>9, de preferencia 10), licence (public domain), archivo csv.
 
 Con base en ello, seleccionamos la base de datos: **"Music & Mental Health Survey Results" (MxMH)**
-La musicoterapia (MT) es reconocida como una práctica basada en evidencia que utiliza la música para mejorar la salud mental del individuo. Sin embargo, existe una amplia gama de géneros musicales. Los datos aportados pueden ayudar a encontrar alguna correlación entre los gustos musicales y la salud mental (autorreportada).
+La musicoterapia (MT) es reconocida como una práctica basada en evidencia que utiliza la música para mejorar la salud mental de las personas. Sin embargo, existe una amplia gama de géneros musicales. Los datos aportados pueden ayudar a identificar una posible correlación entre los gustos musicales y la salud mental autorreportada.
 
+# PREPARAR BASE DE DATOS
+## Cargar Base de Datos
 ```{r}
-# Cargar las paqueterías
-library (ggplot2)
-library (dplyr)
-library (tidyr)
-library (tidyverse)
+mxmh <- read.csv("mxmh_survey_results.csv")
+head(mxmh) # revisar primeros elementos
 ```
 
+## Exploración de Base de Datos
 ```{r}
-# Cargar base de datos
-mxmh <- read_csv("mxmh_survey_results.csv")
-head(mxmh) # Para cargar los primeros datos y asegurar que haya cargado
+dim(mxmh) # dimensiones
+
+## Verificación de variables
+names(mxmh) # nombres de las columnas
+str(mxmh) # tipo
+```
+**Resumen del DataSet**
+```{r}
+summary(mxmh)
 ```
 
+---
+# Cargar Librerías
 ```{r}
-# Explorar la base de datos
-dim(mxmh) # Para explorar la base
-names(mxmh) # Ver las variables que tenemos
+library(tidyr) # para reorganizar base
+library(dplyr) # para manipular datos
+library(ggplot2) # para visualización
+library (janitor) # para organizar los nombres
 ```
+
+# Limpieza de Datos
+```{r}
+mxmh <- mxmh %>%
+  clean_names() # quitar los puntos
+# Reemplazando fav_genre en vez de fav.genre para que sea más intuitivo
+
+# Verificar
+head(mxmh)
+```
+
+**Revisar si hay NA**
+Verificar si existen valores faltantes para ver si afectan en el análisis...
+```{r}
+colSums(is.na(mxmh))
+```
+Hay un NA en edad, y 107 en BPM, pero corresponden a preguntas no contestadas
+
+**Revisar si hay valores duplicados**
+```{r}
+sum(duplicated(mxmh))
+```
+No hay valores duplicados
+
+**Convertir variables Sí/No en factores**
+```{r}
+mxmh <- mxmh %>%
+  mutate(across(c(while_working,
+                  instrumentalist,
+                  composer,
+                  exploratory,
+                  foreign_languages),
+                as.factor)) # Texto a variable categórica, para que no queden como caracteres (yes/no)
+```
+
+*Verificar si se hizo*
+Observar cuántas personas hay en cada categoría
+```{r}
+table(mxmh$instrumentalist)
+```
+
+*Verificar todas las variables por si acaso...*
+```{r}
+glimpse(mxmh)
+```
+
+
+**Convertir otras variables a factor**
+```{r}
+# Las categóricas
+mxmh <- mxmh %>%
+  mutate(
+    primary_streaming_service = factor(primary_streaming_service),
+    fav_genre = factor(fav_genre),
+    music_effects = factor(music_effects),
+    permissions = factor(permissions)
+  )
+
+# Seleccionar también todas las que empiececn con frequency_
+mxmh <- mxmh %>%
+  mutate(across(starts_with("frequency_"),
+                factor))
+```
+
+
+**Volver a verificar...**
+```{r}
+glimpse(mxmh)
+```
+
 
 ¿Qué significan las columnas del datasets? 
 Dimensiones del data frame (filas x columnas) 
@@ -38,7 +117,6 @@ Dimensiones del data frame (filas x columnas)
 
 ☻ ☻ ☻
 ---
-
 # Preguntas de Investigación
 
 - Análisis y resultados Analiza los datos y genera 5 preguntas que puedas contestar con las variables que tienes. Genera un reporte completo empleando R Markdown (.Rmd) o Quarto (.qmd) que nos conteste las preguntas realizadas y nos de gráficas de cada uno
