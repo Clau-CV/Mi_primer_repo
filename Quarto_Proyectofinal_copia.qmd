@@ -1,0 +1,406 @@
+---
+title: "Equipo_ZVC_Final"
+author: "Zaira V. Avila, Vladimir Espinosa, Claudia Coutiño"
+format: html
+editor: visual
+---
+
+# Descripción de los datos
+Las neurociencias forman parte de nuestra vida académica, por lo que optamos por buscar una base de datos sobre el sistema nervioso. Se utilizó la plataforma Kaggle, considerando los siguientes factores: usability (>9, de preferencia 10), licence (public domain), archivo csv.
+
+Con base en ello, seleccionamos la base de datos: **"Music & Mental Health Survey Results" (MxMH)**
+La musicoterapia (MT) es reconocida como una práctica basada en evidencia que utiliza la música para mejorar la salud mental de las personas. Sin embargo, existe una amplia gama de géneros musicales. Los datos aportados pueden ayudar a identificar una posible correlación entre los gustos musicales y la salud mental autorreportada.
+
+# PREPARAR BASE DE DATOS
+## Cargar Base de Datos
+```{r}
+mxmh <- read.csv("~/Documents/CursoGitBash/Final-equipo_ZVC/mxmh_survey_results.csv")
+head(mxmh) # revisar primeros elementos
+```
+## Exploración de Base de Datos
+```{r}
+dim(mxmh) # dimensiones
+
+## Verificación de variables
+names(mxmh) # nombres de las columnas
+str(mxmh) # tipo
+```
+**Resumen del DataSet**
+```{r}
+summary(mxmh)
+```
+
+---
+# Cargar Librerías
+```{r}
+library(tidyr) # para reorganizar base
+library(dplyr) # para manipular datos
+library(ggplot2) # para visualización
+library (janitor) # para organizar los nombres
+```
+
+# Limpieza de Datos
+```{r}
+mxmh <- mxmh %>%
+  clean_names() # quitar los puntos
+# Reemplazando fav_genre en vez de fav.genre para que sea más intuitivo
+
+# Verificar
+head(mxmh)
+```
+
+**Revisar si hay NA**
+Verificar si existen valores faltantes para ver si afectan en el análisis...
+```{r}
+colSums(is.na(mxmh))
+```
+Hay un NA en edad, y 107 en BPM, pero corresponden a preguntas no contestadas
+
+**Revisar si hay valores duplicados**
+```{r}
+sum(duplicated(mxmh))
+```
+No hay valores duplicados
+
+**Convertir variables Sí/No en factores**
+```{r}
+mxmh <- mxmh %>%
+  mutate(across(c(while_working,
+                  instrumentalist,
+                  composer,
+                  exploratory,
+                  foreign_languages),
+                as.factor)) # Texto a variable categórica, para que no queden como caracteres (yes/no)
+```
+
+*Verificar si se hizo*
+Observar cuántas personas hay en cada categoría
+```{r}
+table(mxmh$instrumentalist)
+```
+
+*Verificar todas las variables por si acaso...*
+```{r}
+glimpse(mxmh)
+```
+
+
+**Convertir otras variables a factor**
+```{r}
+# Las categóricas
+mxmh <- mxmh %>%
+  mutate(
+    primary_streaming_service = factor(primary_streaming_service),
+    fav_genre = factor(fav_genre),
+    music_effects = factor(music_effects),
+    permissions = factor(permissions)
+  )
+
+# Seleccionar también todas las que empiececn con frequency_
+mxmh <- mxmh %>%
+  mutate(across(starts_with("frequency_"),
+                factor))
+```
+
+
+**Volver a verificar...**
+```{r}
+glimpse(mxmh)
+```
+
+
+¿Qué significan las columnas del datasets? 
+Dimensiones del data frame (filas x columnas) 
+¿Qué tipo de datos analizaste? Describe brevemente el tipo de datos utilizados
+
+
+
+---
+# ANÁLISIS
+## Preguntas de Investigación
+
+### 1) ¿Existe alguna diferencia en preferencias musicales entre personas con distintos niveles de síntomas obsesivo-compulsivos (OCD)? 
+**1. Revisar la distribución para conocer la qué tan frecuentes son los síntomas de OCD en la muestra**
+```{r}
+ggplot(mxmh, aes(x = ocd)) +
+  geom_histogram(
+    binwidth = 1,
+    fill = "#5E548E",
+    color = "white"
+  ) +
+  labs(
+    title = "Distribución de los puntajes de OCD",
+    x = "Puntaje OCD",
+    y = "Frecuencia"
+  ) +
+  theme_minimal()
+```
+
+El histograma muestra cuántos participantes hubo para cada puntaje. La mayoria presnta valores bajos (0-3)
+
+*Revisar la frecuencia de cada puntaje*
+```{r}
+table(mxmh$ocd)
+```
+
+**2. Clasificar OCD por grupos de alto, moderado y bajo**
+Una nueva columna para los grupos, mostrando las categorías
+```{r}
+mxmh <- mxmh %>%
+  mutate(
+    ocd_group = case_when( # lee cada fila
+      ocd <= 3 ~ "Bajo",
+      ocd <= 6 ~ "Moderado",
+      TRUE ~ "Alto" # lo que no corresponde a las categorías anteriores
+    )
+  )
+```
+No se reportaron puntos de corte (niveles clínicos), así que la clasificación es solo para facilitar la comparación
+
+*Verificar...*
+```{r}
+table(mxmh$ocd_group)
+```
+
+**3. Gráfica para comparar preferencias musicales**
+Considerando sus géneros musicales favoritos.
+```{r}
+mxmh %>%
+  filter(ocd_group != "Moderado") %>% # Excluyendo moderado, porque solo me interesa alto y bajo
+  ggplot(aes(x = fav_genre,
+             fill = ocd_group)) + # para las categorías
+  geom_bar(position = "fill") +# para comparar proporciones, cada barra representa el 100% de ese grupo
+  coord_flip() + # voltea la gráfica para que las etiquetas se puedan leer
+  labs(
+    title = "Preferencia musical según nivel de OCD",
+    x = "Género favorito",
+    y = "Proporción",
+    fill = "Grupo OCD"
+  ) +
+  theme_minimal()
+```
+
+---
+### 2) ¿Cómo es el perfil clínico de las personas con OCD elevado? 
+
+**1. Generar un resumen**
+Para comparar los promedios de ansiedad, depresión e insomnio
+```{r}
+perfil <- mxmh %>%
+  group_by(ocd_group) %>%
+  summarise(
+    ansiedad = mean(anxiety, na.rm = TRUE), # Para ignorar si hay datos faltantes
+    depresion = mean(depression, na.rm = TRUE),
+    insomnio = mean(insomnia, na.rm = TRUE)
+  )
+```
+
+**2. Convertir a formato largo**
+Cada fila representa una sola observación, porque sino hay problemas con ggplot.
+```{r}
+library(tidyr)
+
+perfil_long <- perfil %>%
+  pivot_longer(
+    cols = ansiedad:insomnio,
+    names_to = "variable",
+    values_to = "promedio"
+  )
+```
+
+**3. Graficar**
+```{r}
+ggplot(perfil_long,
+       aes(variable,
+           promedio,
+           fill = ocd_group)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Perfil clínico según nivel de OCD",
+    x = "",
+    y = "Promedio"
+  ) +
+  theme_minimal()
+```
+☻☻☻
+### 3)¿Hay algún género musical que esté asociado a menores niveles de insomnio?
+
+***1. Generar un Resumen*** Agrupamos a las personas que presentan insomnio por sus géneros musicales favoritos (fav_genre). La variable de insomnio tiene un valor entre 0-10 por lo que obtenemos la media y la desviación estándar en esta variable para cada género musical.
+
+```{r}
+mxmh %>%
+  group_by(fav_genre) %>%
+  summarise(
+    n = n(),
+    media_insomnio = mean(insomnia, na.rm = TRUE),
+    sd_insomnio = sd(insomnia, na.rm = TRUE)
+  ) %>%
+  arrange(media_insomnio)
+```
+
+***2. Generar una Grafica*** Creamos una grafica de barras ordenada en función del nivel de insomnio promedio para lograr identificar visualmente alguna relación entre el género musical preferido y el insomnio autoinformado.
+
+```{r}
+insomnio_genero <- mxmh %>%
+  group_by(fav_genre) %>%
+  summarise(
+    n = n(),
+    media_insomnio = mean(insomnia, na.rm = TRUE),
+    sd_insomnio = sd(insomnia, na.rm = TRUE)
+  ) %>%
+  arrange(media_insomnio)
+insomnio_genero
+ggplot(insomnio_genero,
+       aes(x = reorder(fav_genre, media_insomnio),
+           y = media_insomnio)) +
+
+  geom_col(fill = "#5E548E") +
+
+  coord_flip() +
+
+  labs(
+    title = "Nivel promedio de insomnio segun género musical favorito",
+    x = "Genero favorito",
+    y = "Insomnio promedio (0-10)"
+  ) +
+
+  theme_minimal()
+```
+
+***3. Interpretacion*** Sorprendentemente, en la gráfica se puede observar que los participantes cuyo género musical favorito es el Lofi presentan mayor promedio de insomnio, seguidos por el Gospel y el Metal. Por el otro lado, los participantes que prefieren el Rap muestran el menor nivel promedio de insomnio, seguidos por el Country. El género Lofi es usualmente escuchado para relajación o intentar conciliar el sueño, lo cual puede estar explicando este resultado tan particular.
+
+### 4) ¿Existe alguna relación entre la ansiedad y el insomnio?
+
+***1. Elaborar un Scatter Plot*** Al tratarse de dos variables no categóricas pero discretas (0-10), lo que debemos realizar es un scatter plot que nos permita visualizar de primera mano el comportamiento de ambas variables, para así poder identificar alguna tendencia o correlación entre ambas.
+
+```{r}
+ggplot(mxmh,
+       aes(x = anxiety,
+           y = insomnia)) +
+
+  geom_jitter(alpha = 0.4,
+              color = "blueviolet") +
+
+  geom_smooth(method = "lm",
+              se = TRUE,
+              color = "orange2") +
+
+  labs(
+    title = "Relación entre la amsiedad y el insomnio ☻",
+    x = "Nivel de ansiedad (0-10)",
+    y = "Nivel de insomnio (0-10)"
+  ) +
+
+  theme_minimal()
+```
+***2. Interpretación de la Gráfica***
+La gráfica nos mostró una asociación positiva (línea naranja) entre los niveles autoinformados de ansiedad y aquellos autoinformados por el insomnio. Sin embargo, se ve claramente una alta dispersión de los datos, lo cual quiere decir que no es una relación tan clara y absoluta, con lo cual podrían estar influyendo otras variables diferentes. 
+
+
+***3. Calculo de una Correlacion***
+Los coeficientes de Spearman son útiles para medir la fuerza y dirección en la relación entre dos variables. Y el valor de “p” nos permitirá saber si la correlación es estadísticamente significativa.
+```{r}
+cor.test(mxmh$anxiety,
+         mxmh$insomnia,
+         method = "spearman")
+```
+***4. Interpretación de los Resultados de Correlación***
+Para el resultado del coeficiente de Spearman, su valor nos indica una correlación relativamente débil.
+Para el resultado del valor “p”, nos indica que la correlación es estadísticamente significativa.
+
+
+### 5) ¿Qué géneros musicales se asocian con mayores niveles de ansiedad?
+```{r}
+ggplot(anxiety_genre,
+       aes(x = reorder(`Fav genre`, Avg_anxiety),
+           y = Avg_anxiety,
+           fill = Avg_anxiety)) +   
+  geom_col() +
+  coord_flip() +
+  scale_fill_gradient(low = "lavender", high = "lightpink3") +
+  labs(title = "Géneros asociados con mayores niveles de ansiedad",
+       x = "Género musical",
+       y = "Promedio de ansiedad",
+       fill = "Ansiedad") +
+  theme_minimal()
+```
+***5. Interpretación de los Resultados***
+Algunos géneros musicales como Folk, K-pop y Rock se asocian con mayores niveles de ansiedad promedio, mientras que géneros como Clásica y R&B presentan niveles más bajos. Sin embargo, las diferencias no son drásticas, lo que sugiere que la ansiedad está distribuida de forma relativamente uniforme entre los géneros.
+
+### 6) ¿Las personas con depresión extrema escuchan más música que otras?
+```{r}
+# Crear variable de grupo (extremo vs no extremo)
+df2 <- mxmh%>%
+  mutate(
+    grupo = ifelse(depression >= 9, "Depresión extrema", "Otros")
+  )
+
+# Calcular promedio de horas por grupo
+comparacion <- df2 %>%
+  group_by(grupo) %>%
+  summarise(
+    Avg_hours = mean(hours_per_day, na.rm = TRUE)
+  )
+
+# Ver resultados
+comparacion
+```
+
+```{r}
+# Crear grupos de depresión más claros
+df2 <- mxmh %>%
+  mutate(
+    grupo = case_when(
+      depression >= 9 ~ "Extrema",
+      depression >= 5 & depression <= 8 ~ "Moderada",
+      depression < 5 ~ "Baja"
+    )
+  )
+
+# Calcular promedio de horas escuchadas
+comparacion <- df2 %>%
+  group_by(grupo) %>%
+  summarise(
+    Avg_hours = mean(hours_per_day, na.rm = TRUE)
+  )
+
+# Ver resultados
+comparacion
+```
+
+```{r}
+# Gráfica
+
+ggplot(comparacion, aes(x = grupo, y = Avg_hours, fill = grupo)) +
+  geom_col() +
+  scale_fill_manual(values = c(
+    "Baja" = "lavender",
+    "Moderada" = "pink",
+    "Extrema" = "lightpink3"
+  )) +
+  labs(
+    title = "Horas de escucha según nivel de depresión",
+    x = "Nivel de depresión",
+    y = "Promedio de horas escuchadas"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+***6. Interpretación de los Resultados***
+Las personas con niveles extremos de depresión sí tienden a escuchar más música que aquellas con niveles bajos o moderados, presentando un incremento aproximado de una hora diaria. Esto sugiere que el consumo de música puede estar relacionado con niveles más altos de depresión, posiblemente como mecanismo de regulación emocional.
+
+
+
+
+# Conclusiones finales
+
+# \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+
+---
+**Notas de Guía**
+- La exploración gráfica y la presentación de resultados quedan a tu elección. Sin embargo, deben ser claras y comprensibles para todo público. El reporte será evaluado en función del orden y la coherencia en la presentación de la información, siguiendo una estructura de lo general a lo particular. Debes respetar el orden visto en clase, comenzando con la limpieza y manipulación de datos, y posterior visualización gráfica
+
+**Subir**: Quarto (.qmd), HTML (.html), Figuras
+HOLA

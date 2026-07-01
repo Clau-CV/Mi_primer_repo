@@ -1,0 +1,523 @@
+---
+title: "Quarto_verZaira"
+format: html
+editor: visual
+---
+
+# Music & Mental Health Survey Results
+
+## Exploración inicial
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(forcats)
+```
+
+```{r}
+musmental <- read_csv("mxmh_survey_results.csv", show_col_types = FALSE)
+```
+
+```{r}
+head(musmental)
+```
+
+```{r}
+dim(musmental)
+```
+
+```{r}
+names(musmental)
+```
+
+```{r}
+glimpse(musmental)
+```
+
+Qué representa cada fila. Cuántas observaciones y columnas tiene la base. Qué variable usarás como medida principal.
+
+## Limpieza básica
+
+```{r}
+colSums(is.na(musmental))
+```
+
+```{r}
+class(musmental$Anxiety)
+class(musmental$Depression)
+
+class(musmental$`Music effects`)
+
+```
+
+```{r}
+musmental_limpio <- musmental %>%
+  
+  # Quitar filas completamente vacías
+  filter(!if_all(everything(), is.na)) %>%
+  
+  # Eliminar duplicados
+  distinct() %>%
+  
+  # Filtrar datos válidos
+  filter(!is.na(Age),
+         Age > 10, Age < 100,
+         `Hours per day` > 0, `Hours per day` < 24) %>%
+  
+  # Convertir variables binarias
+  mutate(
+    `While working` = if_else(`While working` == "Yes", 1, 0),
+    Instrumentalist = if_else(Instrumentalist == "Yes", 1, 0),
+    Composer = if_else(Composer == "Yes", 1, 0)
+  ) %>%
+  
+  # Limpiar Music effects
+  mutate(
+    Music_effects_num = case_when(
+      `Music effects` == "No effect" ~ 0,
+      `Music effects` == "Improve" ~ 1,
+      `Music effects` == "Worsen" ~ -1,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  
+  # Quitar NA de variable clave
+  filter(!is.na(Music_effects_num)) %>%
+  
+  # Convertir a factor
+  mutate(
+    `Primary streaming service` = as.factor(`Primary streaming service`),
+    `Fav genre` = as.factor(`Fav genre`)
+  )
+```
+
+```{r}
+glimpse(musmental_limpio)
+```
+
+```{r}
+dim(musmental)
+```
+
+```{r}
+dim(musmental_limpio)
+```
+
+```{r}
+class(musmental_limpio$`Music effects`)
+```
+
+Nota breve sobre qué limpieza hiciste y por qué.
+
+## Tema visual
+
+```{r}
+theme_musmental <- function() {
+  theme_minimal(base_size = 13) +
+    theme(
+      plot.title = element_text(face = "bold", size = 16),
+      plot.subtitle = element_text(size = 11),
+      plot.caption = element_text(size = 9, color = "#659287"),
+      axis.title = element_text(face = "bold"),
+      panel.grid.minor = element_blank(),
+      legend.position = "bottom"
+    )
+}
+```
+
+### Graficas
+
+```{r}
+efecto_por_genero <- musmental_limpio %>%
+  group_by(`Fav genre`) %>%
+  summarise(
+    efecto_total = sum(Music_effects_num, na.rm = TRUE),
+    numero_personas = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(efecto_total))
+
+efecto_por_genero
+
+```
+
+```{r}
+efecto_por_genero %>%
+  mutate(`Fav genre` = reorder(`Fav genre`, efecto_total)) %>%
+  ggplot(aes(
+    x = `Fav genre`,
+    y = efecto_total,
+    fill = efecto_total
+  )) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_gradient(
+    low = "#80BCBD",
+    high = "#007979"
+  ) +
+  labs(
+    title = "Efecto acumulado de la música por género",
+    subtitle = "Suma del impacto reportado en salud mental",
+    x = "Género musical",
+    y = "Efecto total"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+```{r}
+ansiedad_genero <- musmental_limpio %>%
+  group_by(`Fav genre`) %>%
+  summarise(
+    ansiedad_prom = mean(Anxiety, na.rm = TRUE),
+    personas = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(ansiedad_prom))
+
+```
+
+```{r}
+ansiedad_genero %>%
+  mutate(`Fav genre` = reorder(`Fav genre`, ansiedad_prom)) %>%
+  ggplot(aes(
+    x = `Fav genre`,
+    y = ansiedad_prom,
+    fill = ansiedad_prom
+  )) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_gradient(
+    low = "#FFD6D6",
+    high = "#B22222"
+  ) +
+  labs(
+    title = "Ansiedad promedio por género musical",
+    subtitle = "Promedio de niveles de ansiedad reportados",
+    x = "Género musical",
+    y = "Ansiedad promedio"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+```{r}
+depresion_genero <- musmental_limpio %>%
+  group_by(`Fav genre`) %>%
+  summarise(
+    depresion_prom = mean(Depression, na.rm = TRUE),
+    personas = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(depresion_prom))
+```
+
+```{r}
+depresion_genero %>%
+  mutate(`Fav genre` = reorder(`Fav genre`, depresion_prom)) %>%
+  ggplot(aes(
+    x = `Fav genre`,
+    y = depresion_prom,
+    fill = depresion_prom
+  )) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_gradient(
+    low = "#FFD9A6",
+    high = "#B22272"
+  ) +
+  labs(
+    title = "Depresion promedio por género musical",
+    subtitle = "Promedio de niveles de depresion reportados",
+    x = "Género musical",
+    y = "Depresion promedio"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+```{r}
+comparacion <- musmental_limpio %>%
+  group_by(`Fav genre`) %>%
+  summarise(
+    efecto_total = sum(Music_effects_num, na.rm = TRUE),
+    ansiedad_prom = mean(Anxiety, na.rm = TRUE),
+    depresion_prom = mean(Depression, na.rm = TRUE),
+    personas = n(),
+    .groups = "drop"
+  )
+```
+
+```{r}
+ggplot(comparacion, aes(
+  x = efecto_total,
+  y = ansiedad_prom,
+  size = personas
+)) +
+  geom_point(color = "#007979") +
+  geom_text(aes(label = `Fav genre`), vjust = -0.5) +
+  labs(
+    title = "Relación entre efecto de la música y ansiedad",
+    x = "Efecto total de la música",
+    y = "Ansiedad promedio"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+comparacion <- musmental_limpio%>%
+  group_by(`Fav genre`) %>%
+  summarise(
+    efecto_total = sum(Music_effects_num, na.rm = TRUE),
+    ansiedad_prom = mean(Anxiety, na.rm = TRUE),
+    depresion_prom = mean(Depression, na.rm = TRUE),
+    personas = n(),
+    .groups = "drop"
+  )
+
+```
+
+```{r}
+plot_object <- ggplot(
+  data = comparacion,
+  aes(
+    x = efecto_total,
+    y = ansiedad_prom
+  )
+)
+plot_object <- plot_object +
+  geom_point(aes(size = personas), color = "#007979", alpha = 0.8)
+plot_object <- plot_object +
+  geom_text(aes(label = `Fav genre`), vjust = -0.5, size = 3)
+```
+
+```{r}
+plot_object <- plot_object +
+  labs(
+    title = "Relación entre efecto de la música y ansiedad",
+    subtitle = "Por género musical",
+    x = "Efecto total de la música",
+    y = "Ansiedad promedio",
+    size = "Número de personas"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+
+plot_object <- plot_object +
+  geom_smooth(method = "lm", se = FALSE, color = "red")
+
+plot_object
+```
+Genero
+```{r}
+# Contar y filtrar géneros (>10)
+genre <- musmental_limpio %>%
+  count(`Fav genre`) %>%
+  filter(n > 10)
+
+# Crear un vector de colores tipo "pastel"
+colors <- scales::hue_pal()(nrow(genre))
+
+# Gráfico de pastel
+ggplot(genre, aes(x = "", y = n, fill = `Fav genre`)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = n),
+            position = position_stack(vjust = .5)) +
+  scale_fill_manual(values = colors) +
+  ggtitle("Proporción de los generos musicales mas votados") +
+  theme_void()
+```
+
+¿Cómo se distribuyen las calificaciones (rankings) de distintos trastornos de salud mental entre los participantes?
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Columnas de interés
+m_all <- c("Anxiety", "Depression", "Insomnia", "OCD")
+
+# Redondear y convertir a entero
+mental_df <- musmental_limpio %>%
+  select(all_of(m_all)) %>%
+  mutate(across(everything(), ~ as.integer(round(.))))
+
+# Convertir a formato largo
+long_df <- mental_df %>%
+  pivot_longer(cols = everything(),
+               names_to = "Trastorno",
+               values_to = "Puntuación")
+
+# Contar ocurrencias de cada ranking (0 a 10)
+counts <- long_df %>%
+  filter(Puntuación >= 0 & Puntuación <= 10) %>%   
+  count(Trastorno, Puntuación)                    
+
+# Asegurar valores 0–10
+counts <- counts %>%
+  complete(Trastorno, Puntuación = 0:10, fill = list(n = 0))
+
+# Gráfico
+ggplot(counts, aes(x = factor(Puntuación), y = n, fill = Trastorno)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.8)) +
+  scale_fill_manual(values = c(
+    "Anxiety" = "pink",
+    "Depression" = "blue",
+    "Insomnia" = "darkmagenta",
+    "OCD" = "orange"
+  )) +
+  labs(title = "Distribución de calificaciones en salud mental",
+       x = "Puntuación",
+       y = "Número de puntuaciones") +
+  coord_cartesian(ylim = c(0, 170)) +
+  theme_minimal()
+
+```
+
+```{r}
+musmental_limpio %>%
+  summarise(across(all_of(m_all),
+                   ~ round(mean(.x, na.rm = TRUE), 2))) %>%
+  pivot_longer(everything(),
+               names_to = "Disorder",
+               values_to = "Average")
+
+```
+Las puntuaciones elevadas en depresión y ansiedad son muy comunes, con promedios cercanos a 5 y 6, respectivamente. Además, entre cada nivel de puntuación, la popularidad tiende a seguir la misma tendencia; es decir, al pasar de una puntuación de 1 a 2, la frecuencia de estas aumenta tanto para ansiedad como para depresión.
+De manera interesante (aunque preocupante), es más probable que una persona asigne a la depresión una puntuación de 10 que de 0, lo que sugiere una mayor presencia de niveles altos en este trastorno.
+
+```{r}
+plot_df <- musmental_limpio %>%
+  pivot_longer(cols = c(Anxiety, Depression, Insomnia, OCD),
+               names_to = "Disorder",
+               values_to = "Score") %>%
+  filter(Score > 8) %>%
+  group_by(Disorder) %>%
+  summarise(Avg_hours = mean(`Hours per day`, na.rm = TRUE))
+
+ggplot(plot_df, aes(x = Avg_hours, y = Disorder, fill = Disorder)) +
+  geom_col() +
+  scale_fill_manual(values = c("lightpink", "cornflowerblue", "darkmagenta", "orange")) +
+  labs(title = "Horas de escucha de música en personas con niveles extremos de salud mental",
+       x = "Promedio de horas escuchadas",
+       y = "") +
+  coord_cartesian(xlim = c(3, 5.5)) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+# Agrupar por género favorito y calcular promedio de ansiedad
+anxiety_genre <- musmental_limpio %>%
+  group_by(`Fav genre`) %>%
+  summarise(
+    Avg_anxiety = mean(Anxiety, na.rm = TRUE),
+    count = n()
+  ) %>%
+  filter(count > 10) %>%          # filtrar géneros con pocos datos
+  arrange(desc(Avg_anxiety))
+
+anxiety_genre
+
+```
+## ¿Qué géneros musicales se asocian con mayores niveles de ansiedad?
+
+```{r}
+# ggplot(anxiety_genre,
+#        aes(x = reorder(`Fav genre`, Avg_anxiety), 
+#            y = Avg_anxiety)) +
+#   geom_col(fill = "mediumpurple") + 
+#   coord_flip() +
+#   labs(title = "Géneros asociados con mayores niveles de ansiedad",
+#        x = "Género musical",
+#        y = "Promedio de ansiedad") +
+#   theme_minimal()
+```
+```{r}
+ggplot(anxiety_genre,
+       aes(x = reorder(`Fav genre`, Avg_anxiety),
+           y = Avg_anxiety,
+           fill = Avg_anxiety)) +   
+  geom_col() +
+  coord_flip() +
+  scale_fill_gradient(low = "lavender", high = "lightpink3") +
+  labs(title = "Géneros asociados con mayores niveles de ansiedad",
+       x = "Género musical",
+       y = "Promedio de ansiedad",
+       fill = "Ansiedad") +
+  theme_minimal()
+```
+
+## ¿Las personas con depresión extrema escuchan más música que otras?
+
+
+```{r}
+
+# Crear variable de grupo (extremo vs no extremo)
+df2 <- musmental_limpio%>%
+  mutate(
+    grupo = ifelse(Depression >= 9, "Depresión extrema", "Otros")
+  )
+
+# Calcular promedio de horas por grupo
+comparacion <- df2 %>%
+  group_by(grupo) %>%
+  summarise(
+    Avg_hours = mean(`Hours per day`, na.rm = TRUE)
+  )
+
+# Ver resultados
+comparacion
+```
+```{r}
+
+# Crear grupos de depresión más claros
+df2 <- musmental_limpio %>%
+  mutate(
+    grupo = case_when(
+      Depression >= 9 ~ "Extrema",
+      Depression >= 5 & Depression <= 8 ~ "Moderada",
+      Depression < 5 ~ "Baja"
+    )
+  )
+
+# Calcular promedio de horas escuchadas
+comparacion <- df2 %>%
+  group_by(grupo) %>%
+  summarise(
+    Avg_hours = mean(`Hours per day`, na.rm = TRUE)
+  )
+
+# Ver resultados
+comparacion
+```
+
+```{r}
+
+# Gráfica
+
+ggplot(comparacion, aes(x = grupo, y = Avg_hours, fill = grupo)) +
+  geom_col() +
+  scale_fill_manual(values = c(
+    "Baja" = "lavender",
+    "Moderada" = "pink",
+    "Extrema" = "lightpink3"
+  )) +
+  labs(
+    title = "Horas de escucha según nivel de depresión",
+    x = "Nivel de depresión",
+    y = "Promedio de horas escuchadas"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
