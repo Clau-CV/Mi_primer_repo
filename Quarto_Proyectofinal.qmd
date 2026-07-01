@@ -5,7 +5,9 @@ format: html
 editor: visual
 ---
 
-# Descripción de los datos
+# INTRODUCCIÓN
+
+**Descripción del Dataset**
 Las neurociencias forman parte de nuestra vida académica, por lo que optamos por buscar una base de datos sobre el sistema nervioso. Se utilizó la plataforma Kaggle, considerando los siguientes factores: usability (>9, de preferencia 10), licence (public domain), archivo csv.
 
 Con base en ello, seleccionamos la base de datos: **"Music & Mental Health Survey Results" (MxMH)**
@@ -30,6 +32,13 @@ str(mxmh) # tipo
 ```{r}
 summary(mxmh)
 ```
+
+*¿Qué significan las columnas del datasets?*
+
+*Dimensiones del data frame (filas x columnas)*
+
+
+
 
 ---
 # Cargar Librerías
@@ -110,9 +119,8 @@ glimpse(mxmh)
 ```
 
 
-¿Qué significan las columnas del datasets? 
-Dimensiones del data frame (filas x columnas) 
-¿Qué tipo de datos analizaste? Describe brevemente el tipo de datos utilizados
+*¿Qué tipo de datos analizaste? Describe brevemente el tipo de datos utilizados?*
+
 
 
 
@@ -137,7 +145,7 @@ ggplot(mxmh, aes(x = ocd)) +
   theme_minimal()
 ```
 
-El histograma muestra cuántos participantes hubo para cada puntaje. La mayoria presnta valores bajos (0-3)
+El histograma muestra cuántos participantes hubo para cada puntaje. La mayoría presenta valores bajos (0-3).
 
 *Revisar la frecuencia de cada puntaje*
 ```{r}
@@ -298,8 +306,8 @@ ggplot(mxmh,
 La gráfica nos mostró una asociación positiva (línea naranja) entre los niveles autoinformados de ansiedad y aquellos autoinformados por el insomnio. Sin embargo, se ve claramente una alta dispersión de los datos, lo cual quiere decir que no es una relación tan clara y absoluta, con lo cual podrían estar influyendo otras variables diferentes. 
 
 
-***3. Calculo de una Correlacion***
-Los coeficientes de Spearman son útiles para medir la fuerza y dirección en la relación entre dos variables. Y el valor de “p” nos permitirá saber si la correlación es estadísticamente significativa.
+***3. Cálculo de una Correlación***
+Los coeficientes de Spearman son útiles para medir la fuerza y dirección de la relación entre dos variables. Y el valor de “p” nos permitirá saber si la correlación es estadísticamente significativa.
 ```{r}
 cor.test(mxmh$anxiety,
          mxmh$insomnia,
@@ -307,7 +315,7 @@ cor.test(mxmh$anxiety,
 ```
 ***4. Interpretación de los Resultados de Correlación***
 Para el resultado del coeficiente de Spearman, su valor nos indica una correlación relativamente débil.
-Para el resultado del valor “p”, nos indica que la correlación es estadísticamente significativa.
+El resultado del valor “p” nos indica que la correlación es estadísticamente significativa.
 
 
 # Conclusiones finales
@@ -318,6 +326,3 @@ Para el resultado del valor “p”, nos indica que la correlación es estadíst
 ---
 **Notas de Guía**
 - La exploración gráfica y la presentación de resultados quedan a tu elección. Sin embargo, deben ser claras y comprensibles para todo público. El reporte será evaluado en función del orden y la coherencia en la presentación de la información, siguiendo una estructura de lo general a lo particular. Debes respetar el orden visto en clase, comenzando con la limpieza y manipulación de datos, y posterior visualización gráfica
-
-**Subir**: Quarto (.qmd), HTML (.html), Figuras
-HOLA
