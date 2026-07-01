@@ -5,7 +5,9 @@ format: html
 editor: visual
 ---
 
-# Descripción de los datos
+# INTRODUCCIÓN
+
+**Descripción del Dataset**
 Las neurociencias forman parte de nuestra vida académica, por lo que optamos por buscar una base de datos sobre el sistema nervioso. Se utilizó la plataforma Kaggle, considerando los siguientes factores: usability (>9, de preferencia 10), licence (public domain), archivo csv.
 
 Con base en ello, seleccionamos la base de datos: **"Music & Mental Health Survey Results" (MxMH)**
@@ -14,7 +16,7 @@ La musicoterapia (MT) es reconocida como una práctica basada en evidencia que u
 # PREPARAR BASE DE DATOS
 ## Cargar Base de Datos
 ```{r}
-mxmh <- mxmh_survey_results
+mxmh <- read.csv("mxmh_survey_results.csv")
 head(mxmh) # revisar primeros elementos
 ```
 ## Exploración de Base de Datos
@@ -29,7 +31,9 @@ str(mxmh) # tipo
 ```{r}
 summary(mxmh)
 ```
+*¿Qué significan las columnas del datasets?*
 
+*Dimensiones del data frame (filas x columnas)*
 
 # Cargar Librerías
 ```{r}
@@ -110,13 +114,11 @@ glimpse(mxmh)
 ```
 
 
-¿Qué significan las columnas del datasets? 
-Dimensiones del data frame (filas x columnas) 
-¿Qué tipo de datos analizaste? Describe brevemente el tipo de datos utilizados
+*¿Qué tipo de datos analizaste? Describe brevemente el tipo de datos utilizados?*
 
 
 
-
+---
 # ANÁLISIS
 ## Preguntas de Investigación
 
@@ -225,7 +227,7 @@ ggplot(perfil_long,
   ) +
   theme_minimal()
 ```
-☻☻☻
+
 ### 3)¿Hay algún género musical que esté asociado a menores niveles de insomnio?
 
 ***1. Generar un Resumen*** Agrupamos a las personas que presentan insomnio por sus géneros musicales favoritos (fav_genre). La variable de insomnio tiene un valor entre 0-10 por lo que obtenemos la media y la desviación estándar en esta variable para cada género musical.
@@ -394,6 +396,8 @@ Las personas con niveles extremos de depresión sí tienden a escuchar más mús
 
 # Conclusiones finales
 
+El análisis realizado nos sugiere que existen diferencias en algunas variables de salud mental según las preferencias y hábitos musicales de los sujetos. Sin embargo, los resultados deberían de interpretarse cautelosamente dado que corresponden a autoinformes por parte de los participantes y no representan diagnósticos clínicos.
+
 # \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
 
 
@@ -402,4 +406,3 @@ Las personas con niveles extremos de depresión sí tienden a escuchar más mús
 - La exploración gráfica y la presentación de resultados quedan a tu elección. Sin embargo, deben ser claras y comprensibles para todo público. El reporte será evaluado en función del orden y la coherencia en la presentación de la información, siguiendo una estructura de lo general a lo particular. Debes respetar el orden visto en clase, comenzando con la limpieza y manipulación de datos, y posterior visualización gráfica
 
 **Subir**: Quarto (.qmd), HTML (.html), Figuras
-HOLA
